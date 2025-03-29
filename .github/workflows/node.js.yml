@@ -1,5 +1,4 @@
-# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
+# This workflow installs dependencies, builds the app, and starts the server with PM2 on a self-hosted runner.
 
 name: Node.js CI
 
@@ -9,23 +8,30 @@ on:
 
 jobs:
   build:
-
     runs-on: [self-hosted, linux, x64]
 
     strategy:
       matrix:
-        node-version: [ 22.x]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+        node-version: [22.x] # Make sure Node.js 22 is actually supported on your system
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
+
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
-    - run: npm ci
-    - run: npm run build --if-present
-    - run: sudo pm2 start server.js 
 
+    - name: Install dependencies
+      run: npm ci
 
+    - name: Build the app (if applicable)
+      run: npm run build --if-present
+
+    - name: Start app with PM2
+      run: |
+        pm2 delete all || true
+        pm2 start server.js --name backend
+        pm2 save
