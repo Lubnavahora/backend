@@ -1,5 +1,3 @@
-# This workflow installs dependencies, builds the app, and starts the server with PM2 on a self-hosted runner.
-
 name: Node.js CI
 
 on:
@@ -12,7 +10,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [22.x] # Make sure Node.js 22 is actually supported on your system
+        node-version: [20.x] # Use stable LTS version
 
     steps:
     - name: Checkout code
@@ -32,6 +30,18 @@ jobs:
 
     - name: Start app with PM2
       run: |
-        pm2 delete all || true
-        pm2 start server.js --name backend
+        echo "Starting PM2 process..."
+        FILE="server.js"
+        if [ ! -f "$FILE" ]; then
+          FILE="index.js"
+        fi
+
+        if [ ! -f "$FILE" ]; then
+          echo " Error: No entry file found (server.js or index.js)"
+          exit 1
+        fi
+
+        # Restart app if already running, else start fresh
+        pm2 describe backend > /dev/null && pm2 restart backend --update-env || pm2 start $FILE --name backend
+
         pm2 save
